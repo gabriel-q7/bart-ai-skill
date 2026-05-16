@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express, { type Request, type Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   createAckEvent,
   createDoneEvent,
@@ -15,13 +16,22 @@ import { runBartSkill } from './skill/index';
 
 const app = express();
 
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20,             // max 20 requests per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests — please try again later.' },
+});
+
 // ── Health-check endpoint ─────────────────────────────────────────────────────
 app.get('/', (_req: Request, res: Response) => {
   res.json({ name: 'BAR-T', version: '1.0.0', status: 'ok' });
 });
 
 // ── Copilot Extension entry point ─────────────────────────────────────────────
-app.post('/', express.json(), async (req: Request, res: Response) => {
+app.post('/', limiter, express.json(), async (req: Request, res: Response) => {
   // 1. Verify the request comes from GitHub Copilot
   const signature = req.get('Github-Public-Key-Signature') ?? '';
   const keyId = req.get('Github-Public-Key-Identifier') ?? '';

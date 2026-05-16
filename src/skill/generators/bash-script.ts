@@ -26,8 +26,8 @@ set -euo pipefail
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 SCRIPT_DIR="${S}(cd "${S}(dirname "${S}{BASH_SOURCE[0]}")" && pwd)"
-source "${S}{SCRIPT_DIR}/../config.sh"
-load_env "${S}{SCRIPT_DIR}/../.env"
+source "${S}{SCRIPT_DIR}/config.sh"
+load_env "${S}{SCRIPT_DIR}/.env"
 ${inputSection}
 # ── Request ───────────────────────────────────────────────────────────────────
 print_section "${method} ${path}"

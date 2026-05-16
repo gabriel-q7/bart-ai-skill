@@ -218,18 +218,20 @@ export function detectEndpoints(
       if (!content) continue;
 
       const fileEndpoints = extractEndpointsFromFile(filePath, content);
+      if (fileEndpoints.length === 0) continue;
+
       endpoints.push(...fileEndpoints);
 
-      for (let i = 0; i < fileEndpoints.length; i++) {
-        const pattern = ROUTE_PATTERNS.find(
-          (rp) => rp.language && rp.framework,
-        );
-        if (pattern) {
-          frameworkCounts[pattern.framework] =
-            (frameworkCounts[pattern.framework] ?? 0) + 1;
-          languageCounts[pattern.language] =
-            (languageCounts[pattern.language] ?? 0) + 1;
-        }
+      // Count language from file extension (accurate)
+      const lang = languageFromPath(filePath);
+      if (lang) {
+        languageCounts[lang] = (languageCounts[lang] ?? 0) + fileEndpoints.length;
+      }
+
+      // Count framework from which patterns matched this file
+      const detectedFrameworks = frameworksFromContent(content, lang);
+      for (const fw of detectedFrameworks) {
+        frameworkCounts[fw] = (frameworkCounts[fw] ?? 0) + 1;
       }
     }
 
@@ -360,4 +362,32 @@ function topKey(counts: Record<string, number>): string | null {
   const entries = Object.entries(counts);
   if (entries.length === 0) return null;
   return entries.sort((a, b) => b[1] - a[1])[0][0];
+}
+
+/** Derive programming language from file extension. */
+function languageFromPath(filePath: string): string {
+  if (/\.(ts|tsx|js|mjs|cjs)$/.test(filePath)) return 'typescript';
+  if (/\.py$/.test(filePath)) return 'python';
+  if (/\.(java|kt)$/.test(filePath)) return 'java';
+  if (/\.go$/.test(filePath)) return 'go';
+  if (/\.rb$/.test(filePath)) return 'ruby';
+  if (/\.php$/.test(filePath)) return 'php';
+  return '';
+}
+
+/**
+ * Detect which frameworks are used in a file by testing their characteristic
+ * patterns against the file content.
+ */
+function frameworksFromContent(content: string, language: string): string[] {
+  const seen = new Set<string>();
+  for (const pattern of ROUTE_PATTERNS) {
+    if (pattern.language !== language) continue;
+    pattern.regex.lastIndex = 0;
+    if (pattern.regex.test(content)) {
+      seen.add(pattern.framework);
+    }
+    pattern.regex.lastIndex = 0;
+  }
+  return [...seen];
 }

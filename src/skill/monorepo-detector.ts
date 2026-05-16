@@ -120,7 +120,9 @@ function findAppDirectories(
   const searchRoots = ['apps/', 'packages/', 'services/', 'libs/'];
 
   if (type === 'go-workspaces') {
-    return findGoWorkspaceModules(fileContents.get('go.work') ?? '', filePaths);
+    const goWorkContent = fileContents.get('go.work');
+    if (!goWorkContent) return [];
+    return findGoWorkspaceModules(goWorkContent, filePaths);
   }
 
   const apps: string[] = [];
